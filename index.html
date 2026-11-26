@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>W1N CARGO — Доставка из Китая</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #070709;
+      color: #F4F4F5;
+      background-image:
+        radial-gradient(circle at 12% 0%, rgba(220, 38, 38, 0.16) 0%, transparent 42%),
+        radial-gradient(circle at 88% 100%, rgba(225, 29, 72, 0.12) 0%, transparent 45%);
+      min-height: 100vh;
+    }
+    .font-brand { font-family: 'Montserrat', sans-serif; }
+    .silver-grad {
+      background: linear-gradient(180deg, #FFFFFF 0%, #D4D4D8 48%, #71717A 52%, #E4E4E7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .red-grad {
+      background: linear-gradient(180deg, #FF4D5A 0%, #DC2626 50%, #991B1B 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .delivery-btn {
+      transition: all 0.2s ease;
+    }
+    .delivery-btn.active {
+      border-color: #DC2626;
+      background: linear-gradient(145deg, rgba(220, 38, 38, 0.22) 0%, rgba(18, 18, 22, 0.96) 100%);
+      box-shadow: 0 0 22px rgba(220, 38, 38, 0.28);
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0B0B0E; }
+    ::-webkit-scrollbar-thumb { background: #27272A; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #DC2626; }
+  </style>
+</head>
+<body class="antialiased selection:bg-red-600 selection:text-white">
+
+  <!-- Уведомления -->
+  <div id="toastBox" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full px-4 sm:px-0 pointer-events-none"></div>
+
+  <!-- Модальное окно статуса заказа -->
+  <div id="orderModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/85 backdrop-blur-md p-4">
+    <div class="bg-[#111115] border border-red-600/50 rounded-2xl max-w-md w-full p-6 shadow-2xl shadow-red-950/50 text-center">
+      <div id="modalIcon" class="w-14 h-14 rounded-full bg-red-600/20 border border-red-500 flex items-center justify-center mx-auto mb-4 text-red-500">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h3 id="modalTitle" class="font-brand text-xl font-black uppercase text-white mb-2">Заказ оформлен!</h3>
+      <p id="modalDesc" class="text-xs sm:text-sm text-zinc-300 mb-4 leading-relaxed"></p>
+      <div id="modalStats" class="bg-black/70 border border-zinc-800 rounded-xl p-3.5 text-left text-xs text-zinc-300 space-y-1.5 mb-5 font-mono"></div>
+      <div class="flex flex-col sm:flex-row gap-2.5">
+        <button type="button" id="manualExcelBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white text-xs font-semibold transition flex items-center justify-center gap-1.5">
+          <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Скачать Excel вручную
+        </button>
+        <button type="button" id="closeModalBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider transition">
+          Новый заказ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ШАПКА -->
+  <header class="border-b border-zinc-800/90 bg-black/80 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <!-- Фирменная SVG эмблема W1N CARGO -->
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-b from-[#240609] to-black border border-red-600/50 flex items-center justify-center shadow-lg shadow-red-950/40 shrink-0">
+          <svg viewBox="0 0 100 100" class="w-10 h-10">
+            <defs>
+              <radialGradient id="w1nGlobe" cx="50%" cy="42%" r="52%">
+                <stop offset="0%" stop-color="#FF2E3B"/>
+                <stop offset="68%" stop-color="#99070F"/>
+                <stop offset="100%" stop-color="#180204"/>
+              </radialGradient>
+            </defs>
+            <circle cx="50" cy="45" r="29" fill="url(#w1nGlobe)" stroke="#DC2626" stroke-width="1.5"/>
+            <path d="M26 38 Q42 29 56 39 T75 34 M25 51 Q46 59 68 47" stroke="#09090B" stroke-width="2.4" fill="none" opacity="0.55"/>
+            <path d="M12 52 C14 72, 84 68, 88 37" stroke="#FF3B47" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+            <path d="M62 33 L89 21 L83 30 L92 33 L80 38 L76 46 L72 38 L58 40 Z" fill="#F4F4F5" stroke="#DC2626" stroke-width="1"/>
+            <g transform="translate(38, 65)">
+              <polygon points="12,0 24,6 12,12 0,6" fill="#DC2626"/>
+              <polygon points="0,6 12,12 12,23 0,17" fill="#18181B" stroke="#DC2626" stroke-width="1"/>
+              <polygon points="24,6 12,12 12,23 24,17" fill="#09090B" stroke="#DC2626" stroke-width="1"/>
+            </g>
+          </svg>
+        </div>
+
+        <div>
+          <div class="flex items-baseline gap-1 leading-none">
+            <span class="font-brand font-black text-2xl sm:text-3xl silver-grad">W</span>
+            <span class="font-brand font-black text-2xl sm:text-3xl red-grad">1</span>
+            <span class="font-brand font-black text-2xl sm:text-3xl silver-grad">N</span>
+            <span class="font-brand font-black text-lg sm:text-xl tracking-widest text-red-600 ml-1.5">CARGO</span>
+          </div>
+          <p class="text-[11px] font-semibold tracking-[0.18em] text-zinc-400 uppercase mt-1">Доставка из Китая</p>
+        </div>
+      </div>
+
+      <div class="hidden sm:flex items-center gap-3 bg-[#111115] border border-zinc-800 rounded-xl px-3.5 py-2 text-xs">
+        <span class="text-zinc-400">АВИА: <b class="text-white">$3.8/кг</b></span>
+        <span class="text-zinc-700">|</span>
+        <span class="text-zinc-400">АВТО: <b class="text-white">$2.9/кг</b></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ОСНОВНОЙ КОНТЕНТ -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- ЛЕВАЯ КОЛОНКА: ФОРМА ДОБАВЛЕНИЯ ТОВАРА -->
+      <section class="lg:col-span-6 bg-[#111115] border border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-xl relative">
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-lg bg-red-600/20 border border-red-600/50 text-red-500 flex items-center justify-center text-xs font-black">1</span>
+            Добавить товар
+          </h2>
+          <span class="text-[11px] text-zinc-500">Все поля с * обязательны</span>
+        </div>
+
+        <form id="addItemForm" class="space-y-4" novalidate>
+          <!-- Платформа (Кастомный дропдаун) и Категория (Кастомный дропдаун) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Кастомный селект Платформы -->
+            <div class="relative" id="platformSelectBox">
+              <label class="block text-xs font-semibold text-zinc-300 mb-1.5">Платформа *</label>
+              <input type="hidden" id="platformValue" value="Pinduoduo (Пиндуодуо)" />
+              <button type="button" id="platformTrigger" class="w-full bg-black/70 hover:bg-black border border-zinc-700 focus:border-red-600 rounded-xl px-3.5 py-2.5 text-sm text-white flex items-center justify-between gap-2 transition">
+                <span id="platformSelectedText" class="flex items-center gap-2 truncate">
+                  <span class="w-2.5 h-2.5 rounded-full bg-red-600 shrink-0"></span>
+                  <span class="truncate">Pinduoduo (Пиндуодуо)</span>
+                </span>
+                <svg id="platformArrow" class="w-4 h-4 text-zinc-400 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+
+              <div id="platformMenu" class="hidden absolute left-0 right-0 mt-1.5 bg-[#16161C] border border-zinc-700 rounded-xl shadow-2xl z-40 py-1 overflow-hidden">
+                <button type="button" data-val="Pinduoduo (Пиндуодуо)" data-color="#DC2626" class="platform-opt w-full px-3.5 py-2.5 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white flex items-center gap-2.5 transition">
+                  <span class="w-2.5 h-2.5 rounded-full bg-red-600 shrink-0"></span>
+                  <span>Pinduoduo (Пиндуодуо)</span>
+                </button>
+                <button type="button" data-val="Taobao (Таобао)" data-color="#F97316" class="platform-opt w-full px-3.5 py-2.5 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white flex items-center gap-2.5 transition">
+                  <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shrink-0"></span>
+                  <span>Taobao (Таобао)</span>
+                </button>
+                <button type="button" data-val="1688" data-color="#EAB308" class="platform-opt w-full px-3.5 py-2.5 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white flex items-center gap-2.5 transition">
+                  <span class="w-2.5 h-2.5 rounded-full bg-yellow-500 shrink-0"></span>
+                  <span>1688</span>
+                </button>
+                <button type="button" data-val="Poizon (Dewu)" data-color="#06B6D4" class="platform-opt w-full px-3.5 py-2.5 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white flex items-center gap-2.5 transition">
+                  <span class="w-2.5 h-2.5 rounded-full bg-cyan-500 shrink-0"></span>
+                  <span>Poizon (Dewu)</span>
+                </button>
+                <button type="button" data-val="Tmall" data-color="#E11D48" class="platform-opt w-full px-3.5 py-2.5 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white flex items-center gap-2.5 transition">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0"></span>
+                  <span>Tmall</span>
+                </button>
+                <button type="button" data-val="Другая платформа" data-color="#A1A1AA" class="platform-opt w-full px-3.5 py-2.5 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white flex items-center gap-2.5 transition border-t border-zinc-800">
+                  <span class="w-2.5 h-2.5 rounded-full bg-zinc-400 shrink-0"></span>
+                  <span>Другая платформа</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Кастомный селект Категории -->
+            <div class="relative" id="categorySelectBox">
+              <label class="block text-xs font-semibold text-zinc-300 mb-1.5">Категория *</label>
+              <input type="hidden" id="categoryValue" value="Одежда" />
+              <button type="button" id="categoryTrigger" class="w-full bg-black/70 hover:bg-black border border-zinc-700 focus:border-red-600 rounded-xl px-3.5 py-2.5 text-sm text-white flex items-center justify-between gap-2 transition">
+                <span id="categorySelectedText" class="truncate">👕 Одежда</span>
+                <svg id="categoryArrow" class="w-4 h-4 text-zinc-400 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+
+              <div id="categoryMenu" class="hidden absolute left-0 right-0 mt-1.5 bg-[#16161C] border border-zinc-700 rounded-xl shadow-2xl z-40 py-1 overflow-hidden">
+                <button type="button" data-val="Одежда" data-label="👕 Одежда" class="category-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">👕 Одежда</button>
+                <button type="button" data-val="Обувь" data-label="👟 Обувь" class="category-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">👟 Обувь</button>
+                <button type="button" data-val="Электроника" data-label="📱 Электроника" class="category-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">📱 Электроника</button>
+                <button type="button" data-val="Аксессуары" data-label="👜 Аксессуары" class="category-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">👜 Аксессуары</button>
+                <button type="button" data-val="Косметика" data-label="💄 Косметика" class="category-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">💄 Косметика</button>
+                <button type="button" data-val="Товары для дома" data-label="🏠 Товары для дома" class="category-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">🏠 Товары для дома</button>
+                <button type="button" data-val="Другое" data-label="📦 Другое" class="category-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">📦 Другое</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ссылка на товар -->
+          <div>
+            <label class="block text-xs font-semibold text-zinc-300 mb-1.5">Ссылка на товар *</label>
+            <input type="url" id="itemUrl" placeholder="https://mobile.yangkeduo.com/..." class="w-full bg-black/70 border border-zinc-700 focus:border-red-600 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none transition" />
+          </div>
+
+          <!-- Динамические поля: Размер и Цвет (для Одежды и Обуви) + Примечание -->
+          <div class="bg-black/45 border border-zinc-800 rounded-xl p-3.5 space-y-3">
+            <div id="sizeColorFields" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-medium text-zinc-400 mb-1">Размер (S, M, L, 42...)</label>
+                <input type="text" id="itemSize" placeholder="Напр: XL или 43" class="w-full bg-[#111115] border border-zinc-700 focus:border-red-600 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-zinc-400 mb-1">Цвет / Вариант</label>
+                <input type="text" id="itemColor" placeholder="Напр: Чёрный" class="w-full bg-[#111115] border border-zinc-700 focus:border-red-600 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-zinc-400 mb-1">Примечание / Комментарий</label>
+              <input type="text" id="itemNote" placeholder="Модель, комплектация или пожелания..." class="w-full bg-[#111115] border border-zinc-700 focus:border-red-600 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none" />
+            </div>
+          </div>
+
+          <!-- Цена в юанях, Количество, Вес -->
+          <div class="grid grid-cols-3 gap-2.5 sm:gap-3 items-end">
+            <div class="min-w-0">
+              <label class="block text-[11px] sm:text-xs font-semibold text-zinc-300 mb-1.5 whitespace-nowrap">Цена (¥) *</label>
+              <input type="number" step="0.01" min="0.01" id="itemPrice" placeholder="0.00" class="w-full bg-black/70 border border-zinc-700 focus:border-red-600 rounded-xl px-2.5 sm:px-3 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none transition" />
+            </div>
+            <div class="min-w-0">
+              <label class="block text-[11px] sm:text-xs font-semibold text-zinc-300 mb-1.5 whitespace-nowrap">Кол-во *</label>
+              <input type="number" step="1" min="1" value="1" id="itemQty" class="w-full bg-black/70 border border-zinc-700 focus:border-red-600 rounded-xl px-2.5 sm:px-3 py-2.5 text-sm text-white focus:outline-none transition" />
+            </div>
+            <div class="min-w-0">
+              <label class="block text-[11px] sm:text-xs font-semibold text-zinc-300 mb-1.5 whitespace-nowrap">Вес (кг) *</label>
+              <input type="number" step="0.01" min="0.01" id="itemWeight" placeholder="0.50" class="w-full bg-black/70 border border-zinc-700 focus:border-red-600 rounded-xl px-2.5 sm:px-3 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none transition" />
+            </div>
+          </div>
+
+          <!-- Загрузка скриншота -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-semibold text-zinc-300">Скриншот товара</label>
+              <span class="text-[11px] text-zinc-500">Файл, перетаскивание или <kbd class="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-300 font-mono">Ctrl+V</kbd></span>
+            </div>
+            <div id="dropZone" class="border-2 border-dashed border-zinc-700 hover:border-red-600/70 rounded-xl p-3.5 bg-black/50 cursor-pointer transition">
+              <input type="file" id="screenshotFile" accept="image/*" class="hidden" />
+              <div id="dropEmpty" class="flex items-center gap-3 py-1">
+                <div class="w-10 h-10 rounded-xl bg-red-600/15 border border-red-600/40 text-red-500 flex items-center justify-center shrink-0">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <div class="text-xs">
+                  <p class="font-medium text-zinc-200">Нажмите чтобы выбрать или вставьте скриншот</p>
+                  <p class="text-zinc-500 mt-0.5">Фото автоматически встроится в Excel-таблицу</p>
+                </div>
+              </div>
+              <div id="dropPreview" class="hidden items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <img id="previewThumb" src="" alt="Скриншот" class="w-14 h-14 object-cover rounded-lg border border-red-600/50 shrink-0 bg-black" />
+                  <div class="min-w-0">
+                    <p id="previewName" class="text-xs font-semibold text-white truncate">screenshot.jpg</p>
+                    <p class="text-[11px] text-emerald-400 mt-0.5">✓ Готово к добавлению</p>
+                  </div>
+                </div>
+                <button type="button" id="removePreviewBtn" class="px-2.5 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/35 text-red-400 text-xs font-semibold shrink-0 transition">
+                  Удалить
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm py-3.5 px-5 rounded-xl transition shadow-lg shadow-red-950/50 flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
+            Добавить в корзину
+          </button>
+        </form>
+      </section>
+
+      <!-- ПРАВАЯ КОЛОНКА: КОРЗИНА И ОФОРМЛЕНИЕ -->
+      <section class="lg:col-span-6 space-y-6">
+        <!-- Список товаров в корзине -->
+        <div class="bg-[#111115] border border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2.5">
+              <span class="w-7 h-7 rounded-lg bg-red-600/20 border border-red-600/50 text-red-500 flex items-center justify-center text-xs font-black">2</span>
+              Корзина и оформление
+              <span id="cartBadge" class="px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold">0</span>
+            </h2>
+            <button type="button" id="clearCartBtn" class="hidden text-xs text-zinc-400 hover:text-red-500 transition">Очистить</button>
+          </div>
+
+          <div id="emptyCartMsg" class="border border-dashed border-zinc-800 rounded-xl py-8 px-4 text-center">
+            <p class="text-sm font-medium text-zinc-300">В корзине пока нет товаров</p>
+            <p class="text-xs text-zinc-500 mt-1">Добавьте позиции слева, чтобы рассчитать доставку</p>
+          </div>
+
+          <div id="cartContainer" class="hidden space-y-3 max-h-[380px] overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Выбор доставки, контакты и итог -->
+        <div class="bg-[#111115] border border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-5">
+          <!-- Способ доставки -->
+          <div>
+            <label class="block text-xs font-semibold text-zinc-300 mb-2">Способ доставки *</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button type="button" id="btnAir" class="delivery-btn active text-left rounded-xl border border-zinc-700 bg-black/60 p-3.5 cursor-pointer">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                  <span class="text-sm font-extrabold text-white">✈️ АВИА ДОСТАВКА</span>
+                  <span class="text-xs font-black px-2 py-0.5 rounded bg-red-600 text-white shrink-0">$3.8 / кг</span>
+                </div>
+                <p class="text-xs text-zinc-300 font-medium">Срок: 7–14 дней</p>
+              </button>
+
+              <button type="button" id="btnAuto" class="delivery-btn text-left rounded-xl border border-zinc-700 bg-black/60 p-3.5 cursor-pointer">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                  <span class="text-sm font-extrabold text-white">🚚 АВТО ДОСТАВКА</span>
+                  <span class="text-xs font-black px-2 py-0.5 rounded bg-zinc-700 text-white shrink-0">$2.9 / кг</span>
+                </div>
+                <p class="text-xs text-zinc-300 font-medium">Срок: 18–25 дней</p>
+              </button>
+            </div>
+          </div>
+
+          <!-- Ник Telegram и Страна доставки -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1.5">Ваш ник в Telegram *</label>
+              <div class="relative">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-sm">@</span>
+                <input type="text" id="tgUsername" placeholder="username" class="w-full bg-black/70 border border-zinc-700 focus:border-red-600 rounded-xl pl-8 pr-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none transition" />
+              </div>
+            </div>
+
+            <!-- Кастомный селект Страны -->
+            <div class="relative" id="countrySelectBox">
+              <label class="block text-xs font-semibold text-zinc-300 mb-1.5">Страна доставки *</label>
+              <input type="hidden" id="countryValue" value="Молдова" />
+              <button type="button" id="countryTrigger" class="w-full bg-black/70 hover:bg-black border border-zinc-700 focus:border-red-600 rounded-xl px-3.5 py-2.5 text-sm text-white flex items-center justify-between gap-2 transition">
+                <span id="countrySelectedText" class="truncate">🇲🇩 Молдова</span>
+                <svg id="countryArrow" class="w-4 h-4 text-zinc-400 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+
+              <div id="countryMenu" class="hidden absolute left-0 right-0 mt-1.5 bg-[#16161C] border border-zinc-700 rounded-xl shadow-2xl z-40 py-1 overflow-hidden">
+                <button type="button" data-val="Молдова" data-label="🇲🇩 Молдова" class="country-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">🇲🇩 Молдова</button>
+                <button type="button" data-val="Россия" data-label="🇷🇺 Россия" class="country-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">🇷🇺 Россия</button>
+                <button type="button" data-val="Казахстан" data-label="🇰🇿 Казахстан" class="country-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">🇰🇿 Казахстан</button>
+                <button type="button" data-val="Беларусь" data-label="🇧🇾 Беларусь" class="country-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">🇧🇾 Беларусь</button>
+                <button type="button" data-val="Узбекистан" data-label="🇺🇿 Узбекистан" class="country-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">🇺🇿 Узбекистан</button>
+                <button type="button" data-val="Кыргызстан" data-label="🇰🇬 Кыргызстан" class="country-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition">🇰🇬 Кыргызстан</button>
+                <button type="button" data-val="OTHER" data-label="🌍 Другая страна..." class="country-opt w-full px-3.5 py-2 text-left text-sm text-zinc-200 hover:bg-red-600/20 hover:text-white transition border-t border-zinc-800">🌍 Другая страна...</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="customCountryWrap" class="hidden">
+            <input type="text" id="customCountryInput" placeholder="Введите название страны доставки..." class="w-full bg-black/70 border border-zinc-700 focus:border-red-600 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none transition" />
+          </div>
+
+          <!-- Итоговый блок -->
+          <div class="bg-black/75 border border-zinc-800 rounded-xl p-4 space-y-2 text-xs">
+            <div class="flex justify-between text-zinc-400">
+              <span>Товаров в корзине:</span>
+              <span id="sumCount" class="font-semibold text-zinc-200">0 поз. (0 шт)</span>
+            </div>
+            <div class="flex justify-between text-zinc-400">
+              <span>Общий примерный вес:</span>
+              <span id="sumWeight" class="font-bold text-white">0.00 кг</span>
+            </div>
+            <div class="flex justify-between text-zinc-400">
+              <span>Выбранный тариф:</span>
+              <span id="sumRate" class="font-semibold text-zinc-200">АВИА ($3.80 / кг)</span>
+            </div>
+            <div class="border-t border-zinc-800 pt-2.5 mt-2 flex justify-between items-center">
+              <span class="text-sm font-medium text-zinc-300">Сумма товаров:</span>
+              <span id="sumCny" class="font-brand font-black text-base sm:text-lg text-white">0.00 ¥</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-medium text-zinc-300">Стоимость доставки:</span>
+              <span id="sumUsd" class="font-brand font-black text-base sm:text-lg text-red-500">$0.00</span>
+            </div>
+          </div>
+
+          <!-- Кнопка отправки -->
+          <button type="button" id="submitOrderBtn" class="w-full bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-brand font-black uppercase tracking-wider text-xs sm:text-sm py-4 px-6 rounded-xl transition shadow-xl shadow-red-950/60 flex items-center justify-center gap-2.5 disabled:opacity-50">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+            <span id="submitBtnLabel">Оформить заказ и отправить</span>
+          </button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // ==========================================
+      // КОНФИГУРАЦИЯ TELEGRAM BOT API (ВШИТО В КОД)
+      // ==========================================
+      const BOT_TOKEN = '8250428938:AAHWzJ8qMfHoxu6oxhihNhZBHvIkXL1Lyns';
+      const ADMIN_CHAT_IDS = ['6408297206', '6594452092'];
+
+      // ==========================================
+      // СОСТОЯНИЕ ПРИЛОЖЕНИЯ
+      // ==========================================
+      let cart = [];
+      let currentScreenshot = null; // { base64, ext, name }
+      let deliveryType = 'air'; // 'air' | 'auto'
+      let lastExcelBlob = null;
+      let lastExcelName = 'W1N_CARGO_Order.xlsx';
+
+      const RATES = {
+        air: { label: 'АВИА (7–14 дней)', short: 'АВИА', price: 3.8 },
+        auto: { label: 'АВТО (18–25 дней)', short: 'АВТО', price: 2.9 }
+      };
+
+      // ==========================================
+      // УВЕДОМЛЕНИЯ (TOAST)
+      // ==========================================
+      function notify(msg, type = 'info') {
+        const box = document.getElementById('toastBox');
+        const el = document.createElement('div');
+        const styles = {
+          success: 'bg-emerald-950/95 border-emerald-500/70 text-emerald-100',
+          error: 'bg-red-950/95 border-red-600 text-red-100',
+          info: 'bg-zinc-900/95 border-zinc-700 text-zinc-100'
+        };
+        el.className = `pointer-events-auto border rounded-xl px-4 py-3 text-xs sm:text-sm font-medium shadow-2xl flex items-center justify-between gap-3 transition-all ${styles[type] || styles.info}`;
+        el.innerHTML = `<span>${escapeHtml(msg)}</span><button type="button" class="text-white/60 hover:text-white font-bold">✕</button>`;
+        el.querySelector('button').addEventListener('click', () => el.remove());
+        box.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+      }
+
+      function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      // ==========================================
+      // КАСТОМНЫЕ ВЫПАДАЮЩИЕ СПИСКИ (DROPDOWNS)
+      // ==========================================
+      function closeAllDropdowns() {
+        ['platform', 'category', 'country'].forEach(prefix => {
+          const menu = document.getElementById(`${prefix}Menu`);
+          const arrow = document.getElementById(`${prefix}Arrow`);
+          if (menu) menu.classList.add('hidden');
+          if (arrow) arrow.classList.remove('rotate-180');
+        });
+      }
+
+      function setupDropdown(prefix) {
+        const trigger = document.getElementById(`${prefix}Trigger`);
+        const menu = document.getElementById(`${prefix}Menu`);
+        const arrow = document.getElementById(`${prefix}Arrow`);
+
+        trigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isOpen = !menu.classList.contains('hidden');
+          closeAllDropdowns();
+          if (!isOpen) {
+            menu.classList.remove('hidden');
+            arrow.classList.add('rotate-180');
+          }
+        });
+      }
+
+      setupDropdown('platform');
+      setupDropdown('category');
+      setupDropdown('country');
+
+      document.addEventListener('click', closeAllDropdowns);
+
+      // Выбор платформы
+      document.querySelectorAll('.platform-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = btn.dataset.val;
+          const color = btn.dataset.color;
+          document.getElementById('platformValue').value = val;
+          document.getElementById('platformSelectedText').innerHTML = `
+            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:${color}"></span>
+            <span class="truncate">${escapeHtml(val)}</span>
+          `;
+          closeAllDropdowns();
+        });
+      });
+
+      // Выбор категории + показ/скрытие Размер и Цвет
+      document.querySelectorAll('.category-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = btn.dataset.val;
+          const label = btn.dataset.label;
+          document.getElementById('categoryValue').value = val;
+          document.getElementById('categorySelectedText').textContent = label;
+          closeAllDropdowns();
+
+          const sizeColorFields = document.getElementById('sizeColorFields');
+          if (val === 'Одежда' || val === 'Обувь') {
+            sizeColorFields.classList.remove('hidden');
+          } else {
+            sizeColorFields.classList.add('hidden');
+          }
+        });
+      });
+
+      // Выбор страны доставки
+      document.querySelectorAll('.country-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = btn.dataset.val;
+          const label = btn.dataset.label;
+          document.getElementById('countryValue').value = val;
+          document.getElementById('countrySelectedText').textContent = label;
+          closeAllDropdowns();
+
+          const customWrap = document.getElementById('customCountryWrap');
+          if (val === 'OTHER') {
+            customWrap.classList.remove('hidden');
+            document.getElementById('customCountryInput').focus();
+          } else {
+            customWrap.classList.add('hidden');
+          }
+        });
+      });
+
+      // ==========================================
+      // ПЕРЕКЛЮЧЕНИЕ СПОСОБА ДОСТАВКИ (АВИА / АВТО)
+      // ==========================================
+      const btnAir = document.getElementById('btnAir');
+      const btnAuto = document.getElementById('btnAuto');
+
+      function setDeliveryType(type) {
+        deliveryType = type;
+        if (type === 'air') {
+          btnAir.classList.add('active');
+          btnAuto.classList.remove('active');
+        } else {
+          btnAuto.classList.add('active');
+          btnAir.classList.remove('active');
+        }
+        updateSummary();
+      }
+
+      btnAir.addEventListener('click', () => setDeliveryType('air'));
+      btnAuto.addEventListener('click', () => setDeliveryType('auto'));
+
+      // ==========================================
+      // ЗАГРУЗКА И ОБРАБОТКА СКРИНШОТА
+      // ==========================================
+      const dropZone = document.getElementById('dropZone');
+      const fileInput = document.getElementById('screenshotFile');
+      const dropEmpty = document.getElementById('dropEmpty');
+      const dropPreview = document.getElementById('dropPreview');
+      const previewThumb = document.getElementById('previewThumb');
+      const previewName = document.getElementById('previewName');
+
+      function handleImageBlob(file) {
+        if (!file || !file.type.startsWith('image/')) {
+          notify('Выберите файл изображения (PNG, JPG, WEBP)', 'error');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = new Image();
+          img.onload = () => {
+            const maxDim = 560;
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+            currentScreenshot = {
+              base64: canvas.toDataURL('image/jpeg', 0.82),
+              ext: 'jpeg',
+              name: file.name || `screen_${Date.now()}.jpg`
+            };
+            renderScreenshotState();
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function renderScreenshotState() {
+        if (currentScreenshot) {
+          dropEmpty.classList.add('hidden');
+          dropPreview.classList.remove('hidden');
+          dropPreview.classList.add('flex');
+          previewThumb.src = currentScreenshot.base64;
+          previewName.textContent = currentScreenshot.name;
+        } else {
+          dropEmpty.classList.remove('hidden');
+          dropPreview.classList.add('hidden');
+          dropPreview.classList.remove('flex');
+          previewThumb.src = '';
+          fileInput.value = '';
+        }
+      }
+
+      dropZone.addEventListener('click', (e) => {
+        if (e.target.closest('#removePreviewBtn')) return;
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handleImageBlob(e.target.files[0]);
+        }
+      });
+
+      document.getElementById('removePreviewBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        currentScreenshot = null;
+        renderScreenshotState();
+      });
+
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-red-600', 'bg-red-950/15');
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-red-600', 'bg-red-950/15');
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-red-600', 'bg-red-950/15');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          handleImageBlob(e.dataTransfer.files[0]);
+        }
+      });
+
+      window.addEventListener('paste', (e) => {
+        const items = (e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData))?.items;
+        if (!items) return;
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf('image') !== -1) {
+            const file = items[i].getAsFile();
+            if (file) {
+              handleImageBlob(file);
+              notify('Скриншот вставлен из буфера обмена!', 'success');
+            }
+            break;
+          }
+        }
+      });
+
+      // ==========================================
+      // ДОБАВЛЕНИЕ ТОВАРА И ОТРИСОВКА КОРЗИНЫ
+      // ==========================================
+      document.getElementById('addItemForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const platform = document.getElementById('platformValue').value;
+        const category = document.getElementById('categoryValue').value;
+        const url = document.getElementById('itemUrl').value.trim();
+        const isWear = category === 'Одежда' || category === 'Обувь';
+        const size = isWear ? (document.getElementById('itemSize').value.trim() || '—') : '—';
+        const color = isWear ? (document.getElementById('itemColor').value.trim() || '—') : '—';
+        const note = document.getElementById('itemNote').value.trim();
+        const price = parseFloat(document.getElementById('itemPrice').value);
+        const qty = parseInt(document.getElementById('itemQty').value, 10);
+        const weight = parseFloat(document.getElementById('itemWeight').value);
+
+        if (!url) {
+          notify('Укажите ссылку на товар', 'error');
+          document.getElementById('itemUrl').focus();
+          return;
+        }
+        if (isNaN(price) || price <= 0) {
+          notify('Укажите корректную цену в юанях (¥)', 'error');
+          document.getElementById('itemPrice').focus();
+          return;
+        }
+        if (isNaN(qty) || qty < 1) {
+          notify('Количество должно быть не меньше 1', 'error');
+          return;
+        }
+        if (isNaN(weight) || weight <= 0) {
+          notify('Укажите вес 1 шт в кг', 'error');
+          document.getElementById('itemWeight').focus();
+          return;
+        }
+
+        cart.push({
+          id: Date.now() + Math.random(),
+          platform,
+          category,
+          url,
+          size,
+          color,
+          note,
+          price,
+          qty,
+          weight,
+          screenshot: currentScreenshot ? { ...currentScreenshot } : null
+        });
+
+        // Сброс полей формы
+        document.getElementById('itemUrl').value = '';
+        document.getElementById('itemSize').value = '';
+        document.getElementById('itemColor').value = '';
+        document.getElementById('itemNote').value = '';
+        document.getElementById('itemPrice').value = '';
+        document.getElementById('itemQty').value = '1';
+        document.getElementById('itemWeight').value = '';
+        currentScreenshot = null;
+        renderScreenshotState();
+
+        renderCart();
+        updateSummary();
+        notify('Товар добавлен в корзину', 'success');
+      });
+
+      document.getElementById('clearCartBtn').addEventListener('click', () => {
+        cart = [];
+        renderCart();
+        updateSummary();
+        notify('Корзина очищена', 'info');
+      });
+
+      function renderCart() {
+        const container = document.getElementById('cartContainer');
+        const emptyMsg = document.getElementById('emptyCartMsg');
+        const badge = document.getElementById('cartBadge');
+        const clearBtn = document.getElementById('clearCartBtn');
+
+        badge.textContent = cart.length;
+
+        if (cart.length === 0) {
+          container.classList.add('hidden');
+          emptyMsg.classList.remove('hidden');
+          clearBtn.classList.add('hidden');
+          container.innerHTML = '';
+          return;
+        }
+
+        emptyMsg.classList.add('hidden');
+        container.classList.remove('hidden');
+        clearBtn.classList.remove('hidden');
+
+        container.innerHTML = cart.map((item, idx) => {
+          const totalCny = (item.price * item.qty).toFixed(2);
+          const totalKg = (item.weight * item.qty).toFixed(2);
+          const thumbHtml = item.screenshot
+            ? `<img src="${item.screenshot.base64}" alt="Фото" class="w-16 h-16 object-cover rounded-lg border border-zinc-700 bg-black shrink-0" />`
+            : `<div class="w-16 h-16 rounded-lg border border-zinc-800 bg-zinc-900 flex items-center justify-center text-[10px] text-zinc-500 text-center p-1 shrink-0">Без фото</div>`;
+
+          return `
+            <div class="bg-black/60 border border-zinc-800 hover:border-red-600/40 rounded-xl p-3 flex items-start gap-3 overflow-hidden">
+              <div class="relative shrink-0">
+                ${thumbHtml}
+                <span class="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">${idx + 1}</span>
+              </div>
+
+              <div class="min-w-0 flex-1 overflow-hidden space-y-1">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="px-2 py-0.5 rounded bg-zinc-800 text-white text-[10px] font-bold">${escapeHtml(item.platform)}</span>
+                  <span class="px-2 py-0.5 rounded bg-red-600/20 text-red-400 text-[10px] font-semibold">${escapeHtml(item.category)}</span>
+                </div>
+
+                <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.url)}" class="overflow-hidden text-ellipsis whitespace-nowrap block max-w-full text-xs text-sky-400 hover:underline">
+                  ${escapeHtml(item.url)}
+                </a>
+
+                <div class="flex flex-wrap gap-x-2.5 gap-y-0.5 text-[11px] text-zinc-400">
+                  ${item.size !== '—' ? `<span>Размер: <b class="text-zinc-200">${escapeHtml(item.size)}</b></span>` : ''}
+                  ${item.color !== '—' ? `<span>Цвет: <b class="text-zinc-200">${escapeHtml(item.color)}</b></span>` : ''}
+                  ${item.note ? `<span class="truncate max-w-full">Прим: <b class="text-zinc-200">${escapeHtml(item.note)}</b></span>` : ''}
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 text-xs pt-0.5">
+                  <span class="text-zinc-300">${item.qty} шт × ${item.price.toFixed(2)} ¥ = <b class="text-white">${totalCny} ¥</b></span>
+                  <span class="text-zinc-400">Вес: <b class="text-zinc-200">${totalKg} кг</b></span>
+                </div>
+              </div>
+
+              <button type="button" data-del-id="${item.id}" title="Удалить товар" class="del-item-btn p-2 rounded-lg bg-red-600/10 hover:bg-red-600/25 text-red-400 shrink-0 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        container.querySelectorAll('.del-item-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = parseFloat(btn.dataset.delId);
+            cart = cart.filter(item => item.id !== id);
+            renderCart();
+            updateSummary();
+          });
+        });
+      }
+
+      // ==========================================
+      // ПОДСЧЁТ ИТОГОВ
+      // ==========================================
+      function calculateTotals() {
+        let totalQty = 0;
+        let totalWeight = 0;
+        let totalCny = 0;
+
+        cart.forEach(item => {
+          totalQty += item.qty;
+          totalWeight += item.weight * item.qty;
+          totalCny += item.price * item.qty;
+        });
+
+        const rateInfo = RATES[deliveryType];
+        const totalUsd = totalWeight * rateInfo.price;
+
+        return {
+          positions: cart.length,
+          totalQty,
+          totalWeight,
+          totalCny,
+          totalUsd,
+          rateInfo
+        };
+      }
+
+      function updateSummary() {
+        const t = calculateTotals();
+        document.getElementById('sumCount').textContent = `${t.positions} поз. (${t.totalQty} шт)`;
+        document.getElementById('sumWeight').textContent = `${t.totalWeight.toFixed(2)} кг`;
+        document.getElementById('sumRate').textContent = `${t.rateInfo.short} ($${t.rateInfo.price.toFixed(2)} / кг)`;
+        document.getElementById('sumCny').textContent = `${t.totalCny.toFixed(2)} ¥`;
+        document.getElementById('sumUsd').textContent = `$${t.totalUsd.toFixed(2)}`;
+      }
+
+      // ==========================================
+      // ГЕНЕРАЦИЯ EXCEL (.XLSX) ЧЕРЕЗ EXCELJS
+      // ==========================================
+      async function buildExcelBlob(orderMeta) {
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'W1N CARGO';
+        const ws = workbook.addWorksheet('Заказ W1N CARGO');
+
+        ws.columns = [
+          { key: 'num', width: 6 },
+          { key: 'platform', width: 20 },
+          { key: 'url', width: 38 },
+          { key: 'category', width: 18 },
+          { key: 'details', width: 28 },
+          { key: 'price', width: 14 },
+          { key: 'qty', width: 10 },
+          { key: 'sumCny', width: 15 },
+          { key: 'weight', width: 14 },
+          { key: 'photo', width: 20 }
+        ];
+
+        // Заголовок
+        ws.mergeCells('A1:J1');
+        const h1 = ws.getCell('A1');
+        h1.value = `W1N CARGO — ЗАКАЗ #${orderMeta.orderId}`;
+        h1.font = { name: 'Arial', size: 15, bold: true, color: { argb: 'FFFFFFFF' } };
+        h1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDC2626' } };
+        h1.alignment = { vertical: 'middle', horizontal: 'center' };
+        ws.getRow(1).height = 32;
+
+        ws.mergeCells('A2:J2');
+        const h2 = ws.getCell('A2');
+        h2.value = `Клиент: ${orderMeta.username} | Страна: ${orderMeta.country} | Доставка: ${orderMeta.totals.rateInfo.label} ($${orderMeta.totals.rateInfo.price}/кг)`;
+        h2.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF111827' } };
+        h2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+        h2.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+        ws.getRow(2).height = 24;
+
+        ws.mergeCells('A3:J3');
+        const h3 = ws.getCell('A3');
+        h3.value = `Общий вес: ${orderMeta.totals.totalWeight.toFixed(2)} кг | Сумма товаров: ${orderMeta.totals.totalCny.toFixed(2)} ¥ | Доставка: $${orderMeta.totals.totalUsd.toFixed(2)}`;
+        h3.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF991B1B' } };
+        h3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } };
+        h3.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+        ws.getRow(3).height = 22;
+
+        // Шапка таблицы (строка 5)
+        const headers = ['№', 'Платформа', 'Ссылка', 'Категория', 'Размер / Цвет / Примечание', 'Цена (¥)', 'Кол-во', 'Сумма (¥)', 'Вес (кг)', 'Фото'];
+        const headerRow = ws.getRow(5);
+        headerRow.height = 26;
+        headers.forEach((text, i) => {
+          const cell = headerRow.getCell(i + 1);
+          cell.value = text;
+          cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
+          cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        });
+
+        // Строки товаров
+        for (let i = 0; i < cart.length; i++) {
+          const item = cart[i];
+          const rowIdx = 6 + i;
+          const row = ws.getRow(rowIdx);
+          row.height = item.screenshot ? 88 : 30;
+
+          const detailsParts = [];
+          if (item.size !== '—') detailsParts.push(`Размер: ${item.size}`);
+          if (item.color !== '—') detailsParts.push(`Цвет: ${item.color}`);
+          if (item.note) detailsParts.push(`Прим: ${item.note}`);
+          const detailsStr = detailsParts.length ? detailsParts.join(' | ') : '—';
+
+          const rowVals = [
+            i + 1,
+            item.platform,
+            item.url,
+            item.category,
+            detailsStr,
+            item.price,
+            item.qty,
+            Number((item.price * item.qty).toFixed(2)),
+            Number((item.weight * item.qty).toFixed(2)),
+            item.screenshot ? '' : 'Нет фото'
+          ];
+
+          rowVals.forEach((v, cIdx) => {
+            const cell = row.getCell(cIdx + 1);
+            cell.value = v;
+            cell.font = { name: 'Arial', size: 10, color: { argb: 'FF111827' } };
+            cell.alignment = {
+              vertical: 'middle',
+              horizontal: (cIdx === 2 || cIdx === 4) ? 'left' : 'center',
+              wrapText: true
+            };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFD4D4D8' } },
+              bottom: { style: 'thin', color: { argb: 'FFD4D4D8' } },
+              left: { style: 'thin', color: { argb: 'FFD4D4D8' } },
+              right: { style: 'thin', color: { argb: 'FFD4D4D8' } }
+            };
+            if (cIdx === 2) {
+              cell.value = { text: item.url, hyperlink: item.url };
+              cell.font = { name: 'Arial', size: 9, color: { argb: 'FF2563EB' }, underline: true };
+            }
+          });
+
+          if (item.screenshot && item.screenshot.base64) {
+            const imgId = workbook.addImage({
+              base64: item.screenshot.base64,
+              extension: item.screenshot.ext || 'jpeg'
+            });
+            ws.addImage(imgId, {
+              tl: { col: 9.1, row: rowIdx - 0.92 },
+              ext: { width: 105, height: 105 }
+            });
+          }
+        }
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        return new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+      }
+
+      function triggerDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+      }
+
+      // ==========================================
+      // ОТПРАВКА ЗАКАЗА В TELEGRAM
+      // ==========================================
+      document.getElementById('submitOrderBtn').addEventListener('click', async () => {
+        if (cart.length === 0) {
+          notify('Добавьте хотя бы один товар в корзину!', 'error');
+          return;
+        }
+
+        const rawUser = document.getElementById('tgUsername').value.trim();
+        if (!rawUser) {
+          notify('Введите ваш ник в Telegram!', 'error');
+          document.getElementById('tgUsername').focus();
+          return;
+        }
+        const username = rawUser.startsWith('@') ? rawUser : `@${rawUser}`;
+
+        const countrySel = document.getElementById('countryValue').value;
+        const country = countrySel === 'OTHER'
+          ? document.getElementById('customCountryInput').value.trim()
+          : countrySel;
+
+        if (!country) {
+          notify('Укажите страну доставки!', 'error');
+          return;
+        }
+
+        const btn = document.getElementById('submitOrderBtn');
+        const label = document.getElementById('submitBtnLabel');
+        btn.disabled = true;
+        label.textContent = 'Формирование и отправка...';
+
+        try {
+          const totals = calculateTotals();
+          const orderId = Math.floor(100000 + Math.random() * 900000);
+          const excelBlob = await buildExcelBlob({ orderId, username, country, totals });
+          const safeUser = username.replace(/[^a-zA-Z0-9_]/g, '') || 'client';
+          const fileName = `W1N_CARGO_${orderId}_${safeUser}.xlsx`;
+
+          lastExcelBlob = excelBlob;
+          lastExcelName = fileName;
+
+          const caption = [
+            `📦 НОВЫЙ ЗАКАЗ #${orderId} — W1N CARGO`,
+            ``,
+            `👤 Клиент: ${username}`,
+            `🌍 Страна доставки: ${country}`,
+            `🚚 Доставка: ${totals.rateInfo.label} ($${totals.rateInfo.price}/кг)`,
+            `⚖️ Общий вес: ${totals.totalWeight.toFixed(2)} кг`,
+            `💴 Сумма в юанях: ${totals.totalCny.toFixed(2)} ¥`,
+            `💵 Расчёт доставки: $${totals.totalUsd.toFixed(2)}`
+          ].join('\n');
+
+          const apiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`;
+          let sentCount = 0;
+
+          for (const chatId of ADMIN_CHAT_IDS) {
+            const fd = new FormData();
+            fd.append('chat_id', chatId);
+            fd.append('document', excelBlob, fileName);
+            fd.append('caption', caption);
+
+            const res = await fetch(apiUrl, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (res.ok && data.ok) {
+              sentCount++;
+            }
+          }
+
+          const modal = document.getElementById('orderModal');
+          const modalTitle = document.getElementById('modalTitle');
+          const modalDesc = document.getElementById('modalDesc');
+          const modalStats = document.getElementById('modalStats');
+
+          modalStats.innerHTML = `
+            <div><b>Заказ:</b> #${orderId}</div>
+            <div><b>Telegram:</b> ${escapeHtml(username)}</div>
+            <div><b>Страна:</b> ${escapeHtml(country)}</div>
+            <div><b>Тариф:</b> ${escapeHtml(totals.rateInfo.label)}</div>
+            <div><b>Вес посылки:</b> ${totals.totalWeight.toFixed(2)} кг</div>
+            <div><b>Сумма товаров:</b> ${totals.totalCny.toFixed(2)} ¥</div>
+            <div><b>Доставка:</b> $${totals.totalUsd.toFixed(2)}</div>
+          `;
+
+          if (sentCount > 0) {
+            modalTitle.textContent = 'Заказ отправлен!';
+            modalDesc.textContent = `Excel-таблица успешно отправлена администраторам W1N CARGO (${sentCount}/${ADMIN_CHAT_IDS.length}) в Telegram.`;
+            notify('Заказ успешно отправлен в Telegram!', 'success');
+          } else {
+            modalTitle.textContent = 'Таблица сформирована';
+            modalDesc.textContent = 'Не удалось автоматически отправить файл через Telegram API (ограничение сети/браузера). Скачайте Excel вручную кнопкой ниже и отправьте менеджеру.';
+            notify('Скачайте Excel вручную кнопкой ниже', 'error');
+          }
+
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        } catch (err) {
+          console.error(err);
+          notify('Ошибка при отправке заказа. Попробуйте скачать Excel вручную.', 'error');
+        } finally {
+          btn.disabled = false;
+          label.textContent = 'Оформить заказ и отправить';
+        }
+      });
+
+      document.getElementById('manualExcelBtn').addEventListener('click', () => {
+        if (lastExcelBlob) {
+          triggerDownload(lastExcelBlob, lastExcelName);
+        }
+      });
+
+      document.getElementById('closeModalBtn').addEventListener('click', () => {
+        const modal = document.getElementById('orderModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        cart = [];
+        renderCart();
+        updateSummary();
+      });
+
+      // Инициализация расчёта
+      updateSummary();
+    });
+  </script>
+</body>
+</html>
